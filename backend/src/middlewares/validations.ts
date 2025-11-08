@@ -134,3 +134,11 @@ export const validateAuthentication = celebrate({
         }),
     }),
 })
+
+export const validateGetOrdersQuery = celebrate({
+    query: Joi.object().keys({
+        page: Joi.number().integer().min(1).max(100).default(1),
+        limit: Joi.number().integer().min(1).max(100).default(10),
+        status: Joi.string().valid('new', 'delivering', 'completed', 'cancelled').optional(),
+    }),
+})
