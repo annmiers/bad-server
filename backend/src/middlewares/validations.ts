@@ -142,3 +142,10 @@ export const validateGetOrdersQuery = celebrate({
         status: Joi.string().valid('new', 'delivering', 'completed', 'cancelled').optional(),
     }),
 })
+
+export const validateGetCustomersQuery = celebrate({
+    query: Joi.object().keys({
+        page: Joi.number().integer().min(1).max(100).default(1),
+        limit: Joi.number().integer().min(1).max(100).default(10),
+    }),
+})
