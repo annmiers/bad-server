@@ -13,9 +13,9 @@ export const getCustomers = async (
     next: NextFunction
 ) => {
     try {
+        const page = req.query.page && typeof req.query.page === 'string' && !isNaN(Number(req.query.page)) && Number(req.query.page) >= 1 && Number(req.query.page) <= 100 ? Math.floor(Number(req.query.page)) : 1;
+        const limit = req.query.limit && typeof req.query.limit === 'string' && !isNaN(Number(req.query.limit)) && Number(req.query.limit) >= 1 && Number(req.query.limit) <= 100 ? Math.floor(Number(req.query.limit)) : 10;
         const {
-            page = 1,
-            limit = 10,
             sortField = 'createdAt',
             sortOrder = 'desc',
             registrationDateFrom,
@@ -116,8 +116,8 @@ export const getCustomers = async (
 
         const options = {
             sort,
-            skip: (Number(page) - 1) * Number(limit),
-            limit: Number(limit),
+            skip: (page - 1) * limit,
+            limit: limit,
         }
 
         const users = await User.find(filters, null, options).populate([
@@ -137,15 +137,15 @@ export const getCustomers = async (
         ])
 
         const totalUsers = await User.countDocuments(filters)
-        const totalPages = Math.ceil(totalUsers / Number(limit))
+        const totalPages = Math.ceil(totalUsers / limit)
 
         res.status(200).json({
             customers: users,
             pagination: {
                 totalUsers,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: page,
+                pageSize: limit,
             },
         })
     } catch (error) {

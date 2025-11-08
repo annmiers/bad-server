@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express'
 import { FilterQuery, Error as MongooseError, Types } from 'mongoose'
 import BadRequestError from '../errors/bad-request-error'
 import NotFoundError from '../errors/not-found-error'
-import Order, { IOrder } from '../models/order'
+import Order, { IOrder, StatusType } from '../models/order'
 import Product, { IProduct } from '../models/product'
 import User from '../models/user'
 
@@ -15,9 +15,9 @@ export const getOrders = async (
     next: NextFunction
 ) => {
     try {
+        const page = req.query.page && typeof req.query.page === 'string' && !isNaN(Number(req.query.page)) && Number(req.query.page) >= 1 && Number(req.query.page) <= 100 ? Math.floor(Number(req.query.page)) : 1;
+        const limit = req.query.limit && typeof req.query.limit === 'string' && !isNaN(Number(req.query.limit)) && Number(req.query.limit) >= 1 && Number(req.query.limit) <= 100 ? Math.floor(Number(req.query.limit)) : 10;
         const {
-            page = 1,
-            limit = 10,
             sortField = 'createdAt',
             sortOrder = 'desc',
             status,
@@ -30,12 +30,11 @@ export const getOrders = async (
 
         const filters: FilterQuery<Partial<IOrder>> = {}
 
-        if (status) {
-            if (typeof status === 'object') {
-                Object.assign(filters, status)
-            }
-            if (typeof status === 'string') {
-                filters.status = status
+        if (status && typeof status === 'string') {
+            if (Object.values(StatusType).includes(status as StatusType)) {
+                filters.status = status as StatusType;
+            } else {
+                return next(new BadRequestError('Неверное значение параметра status'));
             }
         }
 
@@ -105,7 +104,7 @@ export const getOrders = async (
                 },
             })
 
-            filters.$or = searchConditions
+            // filters.$or = searchConditions
         }
 
         const sort: { [key: string]: any } = {}
@@ -116,8 +115,8 @@ export const getOrders = async (
 
         aggregatePipeline.push(
             { $sort: sort },
-            { $skip: (Number(page) - 1) * Number(limit) },
-            { $limit: Number(limit) },
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
             {
                 $group: {
                     _id: '$_id',
@@ -140,8 +139,8 @@ export const getOrders = async (
             pagination: {
                 totalOrders,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: page,
+                pageSize: limit,
             },
         })
     } catch (error) {

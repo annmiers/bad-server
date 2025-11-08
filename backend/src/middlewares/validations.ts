@@ -1,4 +1,5 @@
 import { Joi, celebrate } from 'celebrate'
+import { StatusType } from 'models/order'
 import { Types } from 'mongoose'
 
 // eslint-disable-next-line no-useless-escape
@@ -137,15 +138,24 @@ export const validateAuthentication = celebrate({
 
 export const validateGetOrdersQuery = celebrate({
     query: Joi.object().keys({
-        page: Joi.number().integer().min(1).max(100).default(1),
-        limit: Joi.number().integer().min(1).max(100).default(10),
-        status: Joi.string().valid('new', 'delivering', 'completed', 'cancelled').optional(),
+        page: Joi.number().integer().min(1).max(100),
+        limit: Joi.number().integer().min(1).max(100),
+        sortField: Joi.string().default('createdAt'),
+        sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+        status: Joi.string()
+            .valid(...Object.values(StatusType))
+            .optional()
+            .messages({
+                'any.only': 'Поле status должно быть одним из разрешённых значений.',
+            }),
     }),
 })
 
 export const validateGetCustomersQuery = celebrate({
     query: Joi.object().keys({
-        page: Joi.number().integer().min(1).max(100).default(1),
-        limit: Joi.number().integer().min(1).max(100).default(10),
+        page: Joi.number().integer().min(1).max(100),
+        limit: Joi.number().integer().min(1).max(100),
+        sortField: Joi.string().default('createdAt'),
+        sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
     }),
 })
