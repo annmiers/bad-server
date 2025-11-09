@@ -31,6 +31,9 @@ export const getCustomers = async (
 
         const filters: FilterQuery<Partial<IUser>> = {}
 
+        const limitNorm = Math.min(Number(limit), 10).toString()
+        const pageNorm = Math.min(Number(page), 1).toString()
+
         if (registrationDateFrom) {
             filters.createdAt = {
                 ...filters.createdAt,
@@ -116,8 +119,8 @@ export const getCustomers = async (
 
         const options = {
             sort,
-            skip: (Number(page) - 1) * Number(limit),
-            limit: Number(limit),
+            skip: (Number(pageNorm) - 1) * Number(limitNorm),
+            limit: Number(limitNorm),
         }
 
         const users = await User.find(filters, null, options).populate([
@@ -137,15 +140,15 @@ export const getCustomers = async (
         ])
 
         const totalUsers = await User.countDocuments(filters)
-        const totalPages = Math.ceil(totalUsers / Number(limit))
+        const totalPages = Math.ceil(totalUsers / Number(limitNorm))
 
         res.status(200).json({
             customers: users,
             pagination: {
                 totalUsers,
                 totalPages,
-                currentPage: Number(page),
-                pageSize: Number(limit),
+                currentPage: Number(pageNorm),
+                pageSize: Number(limitNorm),
             },
         })
     } catch (error) {
