@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs'
 
 import { ACCESS_TOKEN, REFRESH_TOKEN } from '../config'
 import UnauthorizedError from '../errors/unauthorized-error'
+import { sanitizeHTMLInput } from '../utils/sanitizeHTML'
 
 export enum Role {
     Customer = 'customer',
@@ -50,6 +51,7 @@ const userSchema = new mongoose.Schema<IUser, IUserModel, IUserMethods>(
             default: 'Евлампий',
             minlength: [2, 'Минимальная длина поля "name" - 2'],
             maxlength: [30, 'Максимальная длина поля "name" - 30'],
+            set: (value: string) => sanitizeHTMLInput(value),
         },
         // в схеме пользователя есть обязательные email и password
         email: {
