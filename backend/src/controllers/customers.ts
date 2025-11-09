@@ -31,8 +31,8 @@ export const getCustomers = async (
 
         const filters: FilterQuery<Partial<IUser>> = {}
 
-        const pageNumber = Math.max(1, Number(page) || 1)
-        const limitNumber = Math.min(Math.max(1, Number(limit) || 10), 10)
+        const pageNumber = Math.max(1, parseInt(page as string) || 1);
+        const limitNumber = Math.min(Math.max(1, parseInt(limit as string) || 10), 10);
 
         if (registrationDateFrom) {
             filters.createdAt = {
