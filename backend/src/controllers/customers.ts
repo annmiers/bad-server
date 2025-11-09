@@ -31,6 +31,8 @@ export const getCustomers = async (
 
         const filters: FilterQuery<Partial<IUser>> = {}
 
+        const limitNumber = Math.min(Math.max(1, parseInt(limit as string) || 10), 10);
+
         if (registrationDateFrom) {
             filters.createdAt = {
                 ...filters.createdAt,
@@ -92,7 +94,9 @@ export const getCustomers = async (
         }
 
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i')
+            const searchString = search as string;
+            const escapedSearch = searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            const searchRegex = new RegExp(escapedSearch, 'i');
             const orders = await Order.find(
                 {
                     $or: [{ deliveryAddress: searchRegex }],
@@ -116,8 +120,8 @@ export const getCustomers = async (
 
         const options = {
             sort,
-            skip: (Number(page) - 1) * Number(limit),
-            limit: Number(limit),
+            skip: (Number(page) - 1) * limitNumber,
+            limit: limitNumber,
         }
 
         const users = await User.find(filters, null, options).populate([
@@ -137,7 +141,7 @@ export const getCustomers = async (
         ])
 
         const totalUsers = await User.countDocuments(filters)
-        const totalPages = Math.ceil(totalUsers / Number(limit))
+        const totalPages = Math.ceil(totalUsers / limitNumber)
 
         res.status(200).json({
             customers: users,
@@ -145,7 +149,7 @@ export const getCustomers = async (
                 totalUsers,
                 totalPages,
                 currentPage: Number(page),
-                pageSize: Number(limit),
+                pageSize: limitNumber,
             },
         })
     } catch (error) {

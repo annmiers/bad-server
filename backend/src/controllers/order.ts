@@ -30,6 +30,22 @@ export const getOrders = async (
 
         const filters: FilterQuery<Partial<IOrder>> = {}
 
+        const limitNumber = Math.min(Math.max(1, parseInt(limit as string) || 10), 10);
+
+        if (status) {
+            if (typeof status === 'string' && /^[a-zA-Z0-9_-]+$/.test(status)) {
+                filters.status = status
+            } else {
+                throw new BadRequestError('Invalid status parameter')
+            }
+        }
+
+        if (search) {
+            if (/[^\w\s]/.test(search as string)) {
+                throw new BadRequestError('Invalid search request')
+            }
+        }
+
         if (status) {
             if (typeof status === 'object') {
                 Object.assign(filters, status)
@@ -116,8 +132,8 @@ export const getOrders = async (
 
         aggregatePipeline.push(
             { $sort: sort },
-            { $skip: (Number(page) - 1) * Number(limit) },
-            { $limit: Number(limit) },
+            { $skip: (Number(page) - 1) * limitNumber },
+            { $limit: limitNumber },
             {
                 $group: {
                     _id: '$_id',
@@ -133,7 +149,7 @@ export const getOrders = async (
 
         const orders = await Order.aggregate(aggregatePipeline)
         const totalOrders = await Order.countDocuments(filters)
-        const totalPages = Math.ceil(totalOrders / Number(limit))
+        const totalPages = Math.ceil(totalOrders / limitNumber)
 
         res.status(200).json({
             orders,
@@ -141,7 +157,7 @@ export const getOrders = async (
                 totalOrders,
                 totalPages,
                 currentPage: Number(page),
-                pageSize: Number(limit),
+                pageSize: limitNumber,
             },
         })
     } catch (error) {
