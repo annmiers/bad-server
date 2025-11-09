@@ -95,7 +95,9 @@ export const getCustomers = async (
         }
 
         if (search) {
-            const searchRegex = new RegExp(search as string, 'i')
+            const searchString = search as string;
+            const escapedSearch = searchString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            const searchRegex = new RegExp(escapedSearch, 'i');
             const orders = await Order.find(
                 {
                     $or: [{ deliveryAddress: searchRegex }],
