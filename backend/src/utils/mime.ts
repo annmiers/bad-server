@@ -1,48 +1,50 @@
-import { open } from 'fs/promises'
+import { readFile } from 'fs/promises';
 
-const SIGNATURES: Record<string, number[]> = {
-    'image/png': [0x89, 0x50, 0x4e, 0x47], // PNG
-    'image/jpeg': [0xff, 0xd8, 0xff], // JPEG SOI
-    'image/gif': [0x47, 0x49, 0x46, 0x38], // GIF8
+const MIME_SIGNATURES: Record<string, Uint8Array> = {
+    'image/png': new Uint8Array([137, 80, 78, 71]), // PNG
+    'image/jpeg': new Uint8Array([255, 216, 255]), // JPEG
+    'image/gif': new Uint8Array([71, 73, 70, 56]), // GIF
+};
+
+const HEADER_READ_LENGTH = 512;
+
+async function getFileHeader(path: string, bytesToRead = HEADER_READ_LENGTH): Promise<Uint8Array> {
+    const fileHandle = await readFile(path);
+    return new Uint8Array(fileHandle.slice(0, bytesToRead));
 }
 
-async function readHeader(filePath: string, length = 256): Promise<Uint8Array> {
-    const fh = await open(filePath, 'r')
-    try {
-        const buf = new Uint8Array(length)
-        await fh.read(buf, 0, length, 0)
-        return buf
-    } finally {
-        await fh.close()
+function checkSignatureMatch(data: Uint8Array, signature: Uint8Array): boolean {
+    if (data.length < signature.length) return false;
+    
+    for (let index = 0; index < signature.length; index++) {
+        if (data[index] !== signature[index]) return false;
     }
+    return true;
 }
 
-function matchesSignature(buffer: Uint8Array, signature: number[]): boolean {
-    if (buffer.length < signature.length) return false
-    for (let i = 0; i < signature.length; i += 1) {
-        if (buffer[i] !== signature[i]) return false
-    }
-    return true
+function checkSvgContent(headerData: Uint8Array): boolean {
+    const textContent = new TextDecoder('utf-8', { fatal: false })
+        .decode(headerData)
+        .trim();
+    
+    const beginning = textContent.substring(0, 60).toLowerCase();
+    return beginning.includes('<?xml') || beginning.includes('<svg');
 }
 
-export async function detectImageMime(
+export async function identifyImageType(
     filePath: string
-): Promise<string | null> {
-    const header = await readHeader(filePath, 512)
+): Promise<string | undefined> {
+    const initialBytes = await getFileHeader(filePath);
 
-    const matched = Object.entries(SIGNATURES).find(([_, sig]) =>
-        matchesSignature(header, sig)
-    )
-
-    if (matched) return matched[0]
-
-    const textStart = new TextDecoder('utf-8', { fatal: false })
-        .decode(header)
-        .trimStart()
-    const normalized = textStart.slice(0, 64).toLowerCase()
-    if (normalized.startsWith('<?xml') || normalized.startsWith('<svg')) {
-        return 'image/svg+xml'
+    for (const [mimeType, signature] of Object.entries(MIME_SIGNATURES)) {
+        if (checkSignatureMatch(initialBytes, signature)) {
+            return mimeType;
+        }
     }
 
-    return null
+    if (checkSvgContent(initialBytes)) {
+        return 'image/svg+xml';
+    }
+
+    return undefined;
 }

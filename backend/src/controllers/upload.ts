@@ -3,7 +3,7 @@ import { constants } from 'http2'
 import * as fs from 'fs/promises'
 import BadRequestError from '../errors/bad-request-error'
 import { FILE_SIZE } from '../config'
-import { detectImageMime } from '../utils/mime'
+import { identifyImageType } from '../utils/mime'
 import { types } from '../middlewares/file'
 
 export const uploadFile = async (
@@ -19,7 +19,7 @@ export const uploadFile = async (
         return next(new BadRequestError('Файл слишком маленький'))
     }
 
-    const mineType = await detectImageMime(req.file.path)
+    const mineType = await identifyImageType(req.file.path)
     if (!mineType || !types.includes(mineType)) {
         await fs.unlink(req.file.path)
         return next(new BadRequestError('Некорректный формат файла'))
